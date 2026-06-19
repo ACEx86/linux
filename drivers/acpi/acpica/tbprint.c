@@ -95,11 +95,14 @@ acpi_tb_print_table_header(acpi_physical_address address,
 {
 	struct acpi_table_header local_header;
 
-#pragma GCC diagnostic push
-#if defined(__GNUC__) && __GNUC__ >= 11
-#pragma GCC diagnostic ignored "-Wstringop-overread"
-#endif
-
+	ssize_t ssrc_len = sizeof(ACPI_CAST_PTR(struct acpi_table_rsdp, header)->signature);
+	size_t src_len = (ssrc_len < 0) ? 0 : (size_t)ssrc_len;
+	size_t src_length = (src_len < 8) ? src_len : 8;
+	char rsdp_sig[src_length + 1];
+	memcpy(rsdp_sig,
+	       ACPI_CAST_PTR(struct acpi_table_rsdp, header)->signature,
+	       src_length);
+	rsdp_sig[src_length] = '\0';
 	if (ACPI_COMPARE_NAMESEG(header->signature, ACPI_SIG_FACS)) {
 
 		/* FACS only has signature and length fields */
@@ -107,8 +110,7 @@ acpi_tb_print_table_header(acpi_physical_address address,
 		ACPI_INFO(("%-4.4s 0x%8.8X%8.8X %06X",
 			   header->signature, ACPI_FORMAT_UINT64(address),
 			   header->length));
-	} else if (ACPI_VALIDATE_RSDP_SIG(ACPI_CAST_PTR(struct acpi_table_rsdp,
-							header)->signature)) {
+	} else if (ACPI_VALIDATE_RSDP_SIG(rsdp_sig)) {
 
 		/* RSDP has no common fields */
 
